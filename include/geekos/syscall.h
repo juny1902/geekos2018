@@ -52,7 +52,8 @@ enum {
     SYS_GETCURSOR,              /* Get current cursor position */
     SYS_PUTCURSOR,              /* Put current cursor position */
     SYS_SPAWN,                  /* Spawn process system call  */
-    SYS_WAIT,                   /* Wait for child process to exit system call  */
+    SYS_SPAWN_EDF,
+	SYS_WAIT,                   /* Wait for child process to exit system call  */
     SYS_GETPID,                 /* Get pid (process id) system call  */
     SYS_KILL,                   /* Kill a process */
     SYS_PS,                     /* Get the current process table */

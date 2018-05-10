@@ -23,10 +23,17 @@
 int Null(void);
 /* void declaration and noreturn annotation help with compiler warnings */
 void Exit(int exitCode) __attribute__ ((noreturn));
+
 int Spawn_Program(const char *program, const char *command,
                   int background);
+int Spawn_Program_EDF(const char *program, const char *command,
+                  int background,int period);
+
 int Spawn_With_Path(const char *program, const char *command,
                     const char *path, int background);
+int Spawn_With_Path_EDF(const char *program, const char *command,
+                    const char *path, int background,int period);
+
 int Wait(int pid);
 int Get_PID(void);
 int PS(struct Process_Info *ptable, int len);

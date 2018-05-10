@@ -283,6 +283,60 @@ static int Sys_Spawn(struct Interrupt_State *state) {
 }
 
 /*
+ * Create a new user process with EDF Scheduling
+ * Params:
+ *   state->ebx - User address of name of executable
+ *   state->ecx - User address of command string
+ *   state->edx - Is this background?
+ *   state->esi - Period
+ * Returns: pid of process if successful, error code (< 0) otherwise
+ */
+static int Sys_Spawn_EDF(struct Interrupt_State *state) {
+    int rc;
+    
+	int len_exe=0;
+	int len_cmd=0;
+	char *program = 0;
+    char *command = 0;
+    struct Kernel_Thread *process = NULL;
+
+    Enable_Interrupts();
+	len_exe = strlen((char *)state->ebx);
+	len_cmd = strlen((char *)state->ecx);
+
+
+    /* Copy program name and command from user space. */
+    if((rc =
+        Copy_User_String(state->ebx, len_exe, VFS_MAX_PATH_LEN,
+                         &program)) != 0 ||
+       (rc =
+        Copy_User_String(state->edx, len_cmd, 1023, &command)) != 0)
+        goto done;
+
+
+    /*
+     * Now that we have collected the program name and command string
+     * from user space, we can try to actually spawn the process.
+     */
+    
+	
+    rc = Spawn(program, command, &process, state->edi, state->esi);
+	if(rc == 0) {
+        KASSERT(process != 0);
+        rc = process->pid;
+    }
+
+  done:
+    if(program != 0)
+        Free(program);
+    if(command != 0)
+        Free(command);
+
+    Disable_Interrupts();
+
+    return rc;
+}
+/*
  * Wait for a process to exit.
  * Params:
  *   state->ebx - pid of process to wait for
@@ -1131,7 +1185,8 @@ const Syscall g_syscallTable[] = {
     Sys_GetCursor,
     Sys_PutCursor,
     Sys_Spawn,
-    Sys_Wait,
+    Sys_Spawn_EDF,
+	Sys_Wait,
     Sys_GetPID,
     Sys_Kill,
     Sys_PS,

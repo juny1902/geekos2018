@@ -29,6 +29,13 @@ DEF_SYSCALL(Spawn_Program, SYS_SPAWN, int,
             size_t arg3 = strlen(command);
             int arg4 = background;
             , SYSCALL_REGS_5)
+DEF_SYSCALL(Spawn_Program_EDF, SYS_SPAWN_EDF, int,
+				(const char *program, const char *command,
+				 int background,int period), const char *arg0=program;
+			const char *arg1=command;
+			int arg2=background;
+			int arg3=period;
+			, SYSCALL_REGS_4)
 DEF_SYSCALL(Wait, SYS_WAIT, int, (int pid), int arg0 = pid;
             , SYSCALL_REGS_1)
 DEF_SYSCALL(Get_PID, SYS_GETPID, int, (void),, SYSCALL_REGS_0)
@@ -83,7 +90,6 @@ static bool Ends_With(const char *name, const char *suffix) {
     return true;
 }
 
-
 int Spawn_With_Path(const char *program, const char *command,
                     const char *path, int background) {
     int pid = -1;
@@ -92,6 +98,52 @@ int Spawn_With_Path(const char *program, const char *command,
 
     /* Try executing program as specified */
     pid = Spawn_Program(program, command, background);
+
+
+    if(pid == ENOTFOUND && strchr(program, '/') == 0) {
+        /* Search for program on path. */
+        for(;;) {
+            char *p;
+
+            while (*path == ':')
+                ++path;
+
+            if(strcmp(path, "") == 0)
+                break;
+
+            p = strchr(path, ':');
+            if(p != 0) {
+                memcpy(exeName, path, p - path);
+                exeName[p - path] = '\0';
+                path = p + 1;
+            } else {
+                strcpy(exeName, path);
+                path = "";
+            }
+
+            strcat(exeName, "/");
+            strcat(exeName, program);
+
+            if(!Ends_With(exeName, ".exe"))
+                strcat(exeName, ".exe");
+
+            /*Print("exeName=%s\n", exeName); */
+            pid = Spawn_Program(exeName, command, background);
+            if(pid != ENOTFOUND)
+                break;
+        }
+    }
+
+    return pid;
+}
+int Spawn_With_Path_EDF(const char *program, const char *command,
+                    const char *path, int background,int period) {
+    int pid = -1;
+    char exeName[(CMDLEN * 2) + 5];
+
+
+    /* Try executing program as specified */
+    pid = Spawn_Program_EDF(program, command, background,period);
 
 
     if(pid == ENOTFOUND && strchr(program, '/') == 0) {
