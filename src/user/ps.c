@@ -13,12 +13,56 @@
 
 #include <conio.h>
 #include <process.h>
-
-
+struct Process_Info ptable[50];
 int main(int argc __attribute__ ((unused)), char **argv
          __attribute__ ((unused))) {
+	
+	char stat, core, affi;
+	int i = 0;
+	PS(ptable,50);
+	Print("PID PPID PRIO STAT AFF TIME COMMAND\n");
+	
+	for(i=0;i<50;i++)
+	{
+	// If there's no process in entry
+		if(ptable[i].pid == 0) return 0;
 
+		// Setting status code
+		if(ptable[i].status == STATUS_ZOMBIE){
+			stat = 'Z';
+		}
+		else if(ptable[i].status == STATUS_RUNNABLE){
+			stat = 'R';
+		}
+		else if(ptable[i].status == STATUS_BLOCKED){
+			stat = 'B';
+		}else{
+			stat = 'U'; // Unknown State
+		}
 
-// format string for one process line should be "%3d %4d %4d %2c%2c %3c %4d %s\n"
-    return 1;
+		// Setting current core
+		if(stat == 'R'){
+			core = ptable[i].currCore + '0';
+		}else{
+			core = ' ';
+		}
+
+		// Setting Affinity
+		if(ptable[i].affinity == -1)
+		{
+			affi = 'A';
+		}else
+		{
+			affi = ptable[i].affinity + '0';
+		}
+
+		// Printing
+		Print("%3d %4d %4d %2c%2c %3c %4d %s\n",
+				ptable[i].pid, ptable[i].parent_pid,
+				ptable[i].priority,
+				core,stat,affi,
+				ptable[i].totalTime, ptable[i].name);
+	}
+	return 0;
 }
+

@@ -27,7 +27,7 @@
 #include <geekos/user.h>
 #include <geekos/smp.h>
 #include <geekos/idt.h>
-
+#include <geekos/errno.h>
 /* ----------------------------------------------------------------------
  * Variables
  * ---------------------------------------------------------------------- */
@@ -56,26 +56,32 @@ void *User_To_Kernel(struct User_Context *userContext, ulong_t userPtr) {
 extern struct User_Context *Create_User_Context(ulong_t size) {
     struct User_Context *context;
     int index;
-
     /* Size must be a multiple of the page size */
     size = Round_Up_To_Page(size);
     if(userDebug)
         Print("Size of user memory == %lu (%lx) (%lu pages)\n", size,
               size, size / PAGE_SIZE);
 
-    TODO("Allocate memory for the user context");
-
-    if(context == 0 || context->memory == 0)
-        goto fail;
-
-    /*
+    // Allocate memory for the user context
+	// From malloc.h
+	context = (struct User_Context *)Malloc(sizeof(struct User_Context));
+	if(context != 0){
+		// If there isn't memory alloc in context, Error occured.
+		context->memory = Malloc(size);
+	}
+	if(context == 0 || context->memory == 0)
+	{ // Make sure both are allocated
+		Print("context : 0x%8d, context_mem : 0x%8d",(int)context,(int)context->memory);
+		TODO("Something's Wrong");
+		goto fail;
+	}
+	/*
      * Fill user memory with zeroes;
      * leaving it uninitialized is a potential security flaw
      */
     memset(context->memory, '\0', size);
 
     context->size = size;
-
     /* Allocate an LDT descriptor for the user context */
     context->ldtDescriptor = Allocate_Segment_Descriptor();
     if(context->ldtDescriptor == 0)
@@ -83,9 +89,22 @@ extern struct User_Context *Create_User_Context(ulong_t size) {
     if(userDebug)
         Print("Allocated descriptor %d for LDT\n",
               Get_Descriptor_Index(context->ldtDescriptor));
-    TODO("Init LDT descriptor");
-    TODO("Set ldt selector");
-    TODO("Initialize code and data segments within the LDT");
+	// Init LDT descriptor
+	// From segment.h
+    // NUM_USER_LDT_ENTRIES = 2 (From user.h)
+	Init_LDT_Descriptor(context->ldtDescriptor,context->ldt,NUM_USER_LDT_ENTRIES);
+	
+	// Set LDT Selector
+	context->ldtSelector = Selector(KERNEL_PRIVILEGE,true,
+			Get_Descriptor_Index(context->ldtDescriptor));
+    
+	// Initialize code and data segments within the LDT
+	Init_Code_Segment_Descriptor(&context->ldt[0],(ulong_t)context->memory,
+			size/PAGE_SIZE,USER_PRIVILEGE);
+	Init_Data_Segment_Descriptor(&context->ldt[1],(ulong_t)context->memory,
+			size/PAGE_SIZE,USER_PRIVILEGE);
+	
+	context->csSelector = Selector(USER_PRIVILEGE, false, 0);
     context->dsSelector = Selector(USER_PRIVILEGE, false, 1);
 
     /* Nobody is using this user context yet */
@@ -168,13 +187,28 @@ int Load_User_Program(char *exeFileData, ulong_t exeFileLength
     unsigned numArgs;
     ulong_t argBlockSize;
     ulong_t size, argBlockAddr;
-    struct User_Context *userContext = 0;
-
-    TODO("Find maximum virtual address");
-
-    TODO("Determine size required for argument block");
-
-    /*
+	// Execption Handling
+	// - Will execute infinite loop without this line
+    if(exeFileData == 0)
+		return ENOTFOUND;
+	
+	struct User_Context *userContext = 0;
+    // Find maximum virtual address
+	for (i = 0; i < exeFormat->numSegments; ++i) {
+      struct Exe_Segment *segment = &exeFormat->segmentList[i];
+      ulong_t topva = segment->startAddress + segment->sizeInMemory;
+	  // Address of the end of each segment.
+      if (topva > maxva)
+        maxva = topva; // The highest value of top virtual address
+    }
+	// Print("Maximum vaddr : 0x%08x\n",(int)maxva);
+    
+	
+	// Determine size required for argument block
+	// From argblock.h
+	Get_Argument_Block_Size(command,&numArgs,&argBlockSize);
+		// Print("argBlockSize : %lu, numArgs : %u\n",argBlockSize,numArgs);
+		/*
      * Now we can determine the size of the memory block needed
      * to run the process.
      */
@@ -186,16 +220,40 @@ int Load_User_Program(char *exeFileData, ulong_t exeFileLength
     userContext = Create_User_Context(size);
     if(userContext == 0)
         return -1;
+	
+    // Load segment data into memory
+	for (i = 0; i < exeFormat->numSegments; ++i) {
+      struct Exe_Segment *segment = &exeFormat->segmentList[i];
 
-    TODO("Load segment data into memory");
-
-    TODO("Format argument block");
-
-    TODO("Fill in code entry point");
-
-    TODO("Fill in addresses of argument block and stack");
-
-    *pUserContext = userContext;
+	  // from Load_Program, but modified for 
+      memcpy(userContext->memory + segment->startAddress,
+           exeFileData + segment->offsetInFile,
+           segment->lengthInFile);
+    }
+	// Print("Loaded segment data\n");	
+	
+	// Format argument block
+	// From argblock.h
+	// Start address of user context + Address of argBlockAddr
+	Format_Argument_Block(userContext->memory + argBlockAddr,numArgs,argBlockAddr,command);
+    
+	
+	// Fill in code entry point
+	userContext->entryAddr = exeFormat->entryAddr;
+    // Fill in addresses of argument block and stack;
+	userContext->argBlockAddr = argBlockAddr;	
+	userContext->stackPointerAddr = argBlockAddr;
+	// Fill context name
+	int cnt;
+	char CMD_T[80];
+	for(cnt=0; cnt<80;cnt++)
+	{
+		CMD_T[cnt] = command[cnt];
+		if(command[cnt] == ' ') break;
+	}
+	memcpy(userContext->name,command,cnt);
+	//Print("Context name = %s\n",userContext->name);
+	*pUserContext = userContext;
     return 0;
 }
 
@@ -213,14 +271,16 @@ static void Printrap_Handler( struct Interrupt_State* state )
 
 int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat)
 {
-    int i;
+
+    
+	int i;
     ulong_t maxva = 0;
     unsigned long virtSize;
     unsigned short codeSelector, dataSelector;
     struct Segment_Descriptor *desc;
-
-      /* Find maximum virtual address */
-    for (i = 0; i < exeFormat->numSegments; ++i) {
+	
+	/* Find maximum virtual address */
+	for (i = 0; i < exeFormat->numSegments; ++i) {
       struct Exe_Segment *segment = &exeFormat->segmentList[i];
       ulong_t topva = segment->startAddress + segment->sizeInMemory;
 
@@ -271,7 +331,6 @@ int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat)
     exeFileData = 0;
 
   /* If we arrived here, everything was fine and the program exited */
-
     return 0;
 
 }

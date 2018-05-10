@@ -260,12 +260,12 @@ static int Sys_Spawn(struct Interrupt_State *state) {
         Copy_User_String(state->edx, state->esi, 1023, &command)) != 0)
         goto done;
 
+
     /*
      * Now that we have collected the program name and command string
      * from user space, we can try to actually spawn the process.
      */
     rc = Spawn(program, command, &process, state->edi);
-
     if(rc == 0) {
         KASSERT(process != 0);
         rc = process->pid;
@@ -337,11 +337,69 @@ extern struct Thread_Queue s_runQueue;
  *          0 if size of user memory too small
  *          N the number of entries in the table, on success
  */
-static int Sys_PS(struct Interrupt_State *state) {
-    TODO_P(PROJECT_BACKGROUND_JOBS, "Sys_PS system call");
-    return 0;
-}
+#define entries 50
 
+struct Process_Info p_list[entries] = {0, };
+static int Sys_PS(struct Interrupt_State *state) {
+	struct Kernel_Thread *t_node = (&s_allThreadList)->head;
+	int i,ret;
+	
+	if(t_node == 0) return -1;
+	
+	for(i=0; i<entries; ++i)
+	{	
+		if(t_node == 0) break;
+		// Setting COMMAND
+		if(t_node->userContext == 0) // User Process
+		{
+			memcpy(p_list[i].name,t_node->threadName,20);
+		}
+		else // Kernel Thread
+		{
+			memcpy(p_list[i].name,t_node->userContext->name,MAX_PROC_NAME_SZB);
+			
+		}
+		p_list[i].pid = t_node->pid;
+
+		// Setting PPID
+		if(t_node->owner != 0)
+			p_list[i].parent_pid = t_node->owner->pid;
+		else
+			p_list[i].parent_pid = 0;
+		p_list[i].priority = t_node->priority;
+
+		p_list[i].affinity = t_node->affinity;
+		p_list[i].currCore = 0;
+		p_list[i].totalTime = t_node->totalTime;
+		
+		// Setting Status
+		
+		if((t_node->refCount == 0 && !(t_node->alive))
+				|| (t_node->refCount == 1 && !(t_node->alive)))
+		{
+			p_list[i].status = STATUS_ZOMBIE;
+		} 
+		if(t_node->refCount == 1 && t_node->alive)
+		{ // Background
+			p_list[i].status = STATUS_BLOCKED;
+		}
+		if(t_node->refCount == 2 && t_node->alive)
+		{ // Foreground
+			p_list[i].status = STATUS_RUNNABLE;
+		}
+		t_node = t_node->nextAll_Thread_List;
+	}
+
+	if(!Copy_To_User(state->ebx,p_list,entries*sizeof(struct Process_Info)))
+	{
+		ret = -1;
+	}
+	else
+	{
+		ret = i;
+	}
+	return ret;
+}
 
 /*
  * Send a signal to a process
