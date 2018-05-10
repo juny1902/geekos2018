@@ -1,4 +1,4 @@
-BSS = 4b5bc
+BSS = 4b5c0
 start kern info = 90000
 Creating kernel heap: start=102000, size=1048576
 527232KB memory detected, 130363 pages in freelist, 1048576 bytes in kernel heap
@@ -21,15 +21,6 @@ Registering paging device: /c/pagefile.bin on ide0 with 10240 sectors
 Mounted /c filesystem!
 Welcome to GeekOS!
 Spawning init process (/c/shell.exe)
-$ l
-Could not spawn process: No such file or directory
-$ ps
-PID PPID PRIO STAT AFF TIME COMMAND
-  1    0    5    B   A   45 {Main}
-  2    0    0    B   0 4400 {Idle-#0}
-  3    1    5    B   A    0 {Reaper}
-  4    1    5    B   A   93 {IDE}
-  5    1    5  0 R   A    0 {Alarm}
-  6    1    1  0 R   A   14 /c/shell.exe
-  7    6    1  0 R   A    0 /c/ps.exe
+$ schedtst rr 1
+11112122121223121212121212121212121212122
 $ 

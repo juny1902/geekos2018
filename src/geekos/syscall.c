@@ -265,7 +265,7 @@ static int Sys_Spawn(struct Interrupt_State *state) {
      * Now that we have collected the program name and command string
      * from user space, we can try to actually spawn the process.
      */
-    rc = Spawn(program, command, &process, state->edi);
+    rc = Spawn(program, command, &process, state->edi, 0);
     if(rc == 0) {
         KASSERT(process != 0);
         rc = process->pid;
@@ -472,9 +472,22 @@ static int Sys_WaitNoPID(struct Interrupt_State *state) {
  *   state->ecx - number of ticks in quantum
  * Returns: 0 if successful, -1 otherwise
  */
+volatile int sched_mode;
+extern volatile int g_Quantum;
+#define RR 0
+#define EDF 1
 static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
-    TODO_P(PROJECT_SCHEDULING, "SetSchedulingPolicy system call");
-    return 0;
+    if((sched_mode == RR || sched_mode == EDF)
+			&&(g_Quantum>=0 || g_Quantum<=100))
+	{
+		sched_mode = state->ebx;
+		g_Quantum = state->ecx;
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 /*

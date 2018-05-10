@@ -92,7 +92,7 @@ void Detach_User_Context(struct Kernel_Thread *kthread) {
  *   the executable file doesn't exist.
  */
 int Spawn(const char *program, const char *command,
-          struct Kernel_Thread **pThread, bool background) {
+          struct Kernel_Thread **pThread, bool background,int period) {
     int rc = 0, rc2 = 0, rc3 = 0;
     char *exeFileData = 0;
     ulong_t exeFileLength;
@@ -125,10 +125,9 @@ int Spawn(const char *program, const char *command,
 
     strncpy(userContext->name, program, MAX_PROC_NAME_SZB);
     userContext->name[MAX_PROC_NAME_SZB - 1] = '\0';
-
-
+	
     /* Start the process! */
-    process = Start_User_Thread(userContext, background);
+    process = Start_User_Thread(userContext, background,period);
     if(process != 0) {
         /* Return Kernel_Thread pointer */
         *pThread = process;
@@ -151,7 +150,7 @@ int Spawn(const char *program, const char *command,
 */
 int Spawn_Foreground(const char *program, const char *command,
                      struct Kernel_Thread **pThread) {
-    return Spawn(program, command, pThread, false);
+    return Spawn(program, command, pThread, false, 0);
 }
 
 extern int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat);

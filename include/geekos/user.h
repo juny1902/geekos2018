@@ -121,7 +121,7 @@ void Attach_User_Context(struct Kernel_Thread *kthread,
                          struct User_Context *context);
 void Detach_User_Context(struct Kernel_Thread *kthread);
 int Spawn(const char *program, const char *command,
-          struct Kernel_Thread **pThread, bool background);
+          struct Kernel_Thread **pThread, bool background,int period);
 int Spawn_Foreground(const char *program, const char *command,
                      struct Kernel_Thread **pThread);
 void Switch_To_User_Context(struct Kernel_Thread *kthread,

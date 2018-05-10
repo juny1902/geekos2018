@@ -1,4 +1,4 @@
-target remote localhost:10740
+target remote localhost:10364
 break Dump_Interrupt_State
 break Hardware_Shutdown
 commands 1

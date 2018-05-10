@@ -66,6 +66,7 @@ struct Kernel_Thread {
     bool alive;
     struct Thread_Queue joinQueue;
     int exitCode;
+	int period;
 
     /* Link fields for list of all threads in the system. */
      DEFINE_LINK(All_Thread_List, Kernel_Thread);
@@ -127,7 +128,7 @@ struct Kernel_Thread *Start_Kernel_Thread(Thread_Start_Func startFunc,
                                           bool detached,
                                           const char *name);
 struct Kernel_Thread *Start_User_Thread(struct User_Context *userContext,
-                                        bool detached);
+                                        bool detached,int period);
 void Make_Runnable(struct Kernel_Thread *kthread);
 void Make_Runnable_Atomic(struct Kernel_Thread *kthread);
 struct Kernel_Thread *Get_Current(void);
