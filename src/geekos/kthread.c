@@ -27,6 +27,7 @@
 #include <geekos/smp.h>
 #include <geekos/synch.h>
 
+
 extern Spin_Lock_t kthreadLock;
 
 /* ----------------------------------------------------------------------
@@ -424,7 +425,7 @@ static void Setup_Kernel_Thread(struct Kernel_Thread *kthread,
  */
 static void Idle(ulong_t arg __attribute__ ((unused))) {
     while (true) {
-        /* 
+        /*
          * The hlt instruction tells the CPU to wait until an interrupt is called.
          * We call this in this loop so the Idle process does not eat up 100% cpu,
          * and make our laptops catch fire.
@@ -648,15 +649,17 @@ struct Kernel_Thread *Start_Kernel_Thread(Thread_Start_Func startFunc,
  * Start a user-mode thread (i.e., a process), using given user context.
  * Returns pointer to the new thread if successful, null otherwise.
  */
+extern volatile ulong_t g_numTicks;
 struct Kernel_Thread *Start_User_Thread(struct User_Context *userContext,
                                         bool detached,int period) {
     struct Kernel_Thread *kthread =
         Create_Thread(PRIORITY_USER, detached);
     if(kthread != 0) {
         /* Set up the thread, and put it on the run queue */
-		kthread->period = period;
         Setup_User_Thread(kthread, userContext);
-        Make_Runnable_Atomic(kthread);
+		// deadline = cur_time + period
+		kthread->deadline = g_numTicks + period;
+		Make_Runnable_Atomic(kthread);
     }
 
     return kthread;

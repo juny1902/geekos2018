@@ -113,15 +113,21 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
             }
         }
     }
-    if(current->numTicks >= g_Quantum) {
-        g_needReschedule[id] = true;
-        // TODO:
-        /*
-         * The current process is moved to a lower priority queue,
-         * since it consumed a full quantum.
-         */
-    }
-
+	if(current->priority < 0) // Realtime Thread
+	{
+		
+	}
+	else
+	{
+	    if(current->numTicks >= g_Quantum) {
+	     g_needReschedule[id] = true;
+	     // TODO:
+		 /*
+		  * The current process is moved to a lower priority queue,
+		  * since it consumed a full quantum.
+		  */
+		}
+	}
     End_IRQ(state);
 }
 
