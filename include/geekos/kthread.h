@@ -40,6 +40,9 @@ DEFINE_LIST(All_Thread_List, Kernel_Thread);
 
 #define AFFINITY_ANY_CORE	-1
 
+#define RR 0
+#define EDF 1
+
 /*
  * Kernel thread context data structure.
  * NOTE: there is assembly code in lowlevel.asm that depends

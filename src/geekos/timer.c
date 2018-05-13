@@ -67,11 +67,14 @@ unsigned int g_Quantum = DEFAULT_MAX_TICKS;
 /* ----------------------------------------------------------------------
  * Private functions
  * ---------------------------------------------------------------------- */
-
+extern volatile int sched_mode;
 void Timer_Interrupt_Handler(struct Interrupt_State *state) {
     int i;
     int id;
-    struct Kernel_Thread *current = CURRENT_THREAD;
+	int prev_deadline;
+	struct Kernel_Thread *current = CURRENT_THREAD;
+
+	prev_deadline = current->deadline;
 
     Begin_IRQ(state);
 
@@ -112,23 +115,25 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
                 pendingTimerEvents[i].ticks--;
             }
         }
-    }
-	if(current->priority < 0) // Realtime Thread
-	{
-		
+    
 	}
-	else
+	if(sched_mode == RR)
 	{
-	    if(current->numTicks >= g_Quantum) {
-	     g_needReschedule[id] = true;
-	     // TODO:
-		 /*
-		  * The current process is moved to a lower priority queue,
-		  * since it consumed a full quantum.
-		  */
+		if(current->numTicks >= g_Quantum) {
+			g_needReschedule[id] = true;
+		  // TODO:
+			 /*
+			  * The current process is moved to a lower priority queue,
+			  * since it consumed a full quantum.
+			  */
 		}
 	}
-    End_IRQ(state);
+	else if(sched_mode == EDF)
+	{
+		Print("Timer_vector of EDF Task\n");
+	}
+	
+	End_IRQ(state);
 }
 
 /*

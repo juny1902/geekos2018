@@ -174,7 +174,7 @@ int Spawn_With_Path_EDF(const char *program, const char *command,
                 strcat(exeName, ".exe");
 
             /*Print("exeName=%s\n", exeName); */
-            pid = Spawn_Program(exeName, command, background);
+            pid = Spawn_Program_EDF(exeName, command, background, period);
             if(pid != ENOTFOUND)
                 break;
         }

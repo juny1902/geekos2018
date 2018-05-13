@@ -249,8 +249,8 @@ static int Sys_Spawn(struct Interrupt_State *state) {
     char *program = 0;
     char *command = 0;
     struct Kernel_Thread *process = NULL;
-
     Enable_Interrupts();
+
 
     /* Copy program name and command from user space. */
     if((rc =
@@ -265,7 +265,7 @@ static int Sys_Spawn(struct Interrupt_State *state) {
      * Now that we have collected the program name and command string
      * from user space, we can try to actually spawn the process.
      */
-    rc = Spawn(program, command, &process, state->edi, 0);
+    rc = Spawn(program, command, &process, state->edi,0);
     if(rc == 0) {
         KASSERT(process != 0);
         rc = process->pid;
@@ -294,34 +294,27 @@ static int Sys_Spawn(struct Interrupt_State *state) {
 static int Sys_Spawn_EDF(struct Interrupt_State *state) {
     int rc;
     
-	int len_exe=0;
-	int len_cmd=0;
 	char *program = 0;
     char *command = 0;
     struct Kernel_Thread *process = NULL;
-
     Enable_Interrupts();
-	len_exe = strlen((char *)state->ebx);
-	len_cmd = strlen((char *)state->ecx);
 
-
-    /* Copy program name and command from user space. */
+	// TODO : Specify lengths
+	
+	/* Copy program name and command from user space. */
     if((rc =
-        Copy_User_String(state->ebx, len_exe, VFS_MAX_PATH_LEN,
+        Copy_User_String(state->ebx, 80, VFS_MAX_PATH_LEN,
                          &program)) != 0 ||
        (rc =
-        Copy_User_String(state->edx, len_cmd, 1023, &command)) != 0)
+        Copy_User_String(state->ecx, 80, 1023, &command)) != 0)
         goto done;
-
 
     /*
      * Now that we have collected the program name and command string
      * from user space, we can try to actually spawn the process.
      */
-    
-	// state->edi ??
 	// Priority of RT Thread = -Period
-    rc = Spawn(program, command, &process, state->edi,(-1)*state->esi);
+    rc = Spawn(program, command, &process, state->edx,(-1)*state->esi);
 	if(rc == 0) {
         KASSERT(process != 0);
         rc = process->pid;
@@ -529,8 +522,6 @@ static int Sys_WaitNoPID(struct Interrupt_State *state) {
  */
 volatile int sched_mode;
 extern volatile int g_Quantum;
-#define RR 0
-#define EDF 1
 static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
     if((sched_mode == RR || sched_mode == EDF)
 			&&(g_Quantum>=0 || g_Quantum<=100))

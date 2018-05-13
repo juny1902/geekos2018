@@ -40,6 +40,7 @@ extern const Syscall g_syscallTable[];
 
 #define SYSCALL "int $0x90"     /* Assembly instruction for the system call trap. */
 
+
 /*
  * System call numbers
  */

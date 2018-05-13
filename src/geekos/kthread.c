@@ -26,7 +26,7 @@
 #include <geekos/projects.h>
 #include <geekos/smp.h>
 #include <geekos/synch.h>
-
+#include <geekos/syscall.h>
 
 extern Spin_Lock_t kthreadLock;
 
@@ -493,6 +493,7 @@ static void Reaper(ulong_t arg __attribute__ ((unused))) {
  * Find the best (highest priority) thread in given
  * thread queue.  Returns null if queue is empty.
  */
+extern volatile int sched_mode;
 static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
                                                   *queue) {
     int cpuID;
@@ -501,15 +502,28 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 
     cpuID = Get_CPU_ID();
 
-    /* Pick the highest priority thread */
+    /* Pick the nearest deadline thread */
     struct Kernel_Thread *kthread = queue->head, *best = 0;
-    while (kthread != 0) {
+	while (kthread != 0) {
         if(kthread->affinity == AFFINITY_ANY_CORE ||
            kthread->affinity == cpuID) {
-            if(best == 0 || kthread->priority > best->priority)
-                // if (kthread->alive) - must finish exiting if not alive.
-                best = kthread;
-        }
+			if(sched_mode == RR)
+			{
+				if(best == 0 || kthread->priority > best->priority)
+				{
+					best = kthread;
+				}
+			}
+			else if(sched_mode == EDF)
+			{
+	            if(best == 0 || kthread->deadline < best->deadline)
+				{
+					// if (kthread->alive) - must finish exiting if not alive.
+					best = kthread;
+					sched_mode == RR;
+				}
+			}
+		}
         kthread = Get_Next_In_Thread_Queue(kthread);
     }
 

@@ -99,7 +99,6 @@ int Spawn(const char *program, const char *command,
     struct User_Context *userContext = 0;
     struct Kernel_Thread *process = 0;
     struct Exe_Format exeFormat;
-
     /*
      * Load the executable file data, parse ELF headers,
      * and load code and data segments into user memory.
@@ -125,10 +124,17 @@ int Spawn(const char *program, const char *command,
 
     strncpy(userContext->name, program, MAX_PROC_NAME_SZB);
     userContext->name[MAX_PROC_NAME_SZB - 1] = '\0';
-	
     /* Start the process! */
-    process = Start_User_Thread(userContext, background,period);
-    if(process != 0) {
+    if(!background) // On Real Time
+	{
+		process = Start_User_Thread(userContext, background,period);
+	}
+	else
+	{
+		process = Start_User_Thread(userContext, background,0);
+	}
+
+	if(process != 0) {
         /* Return Kernel_Thread pointer */
         *pThread = process;
     } else
