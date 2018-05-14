@@ -119,20 +119,21 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
 	}
 	if(sched_mode == RR)
 	{
-		if(current->numTicks >= g_Quantum) {
+		// Vector for RR
+	}
+	else if(sched_mode == EDF)
+	{
+		// Vector for EDF
+	}
+
+	if(current->numTicks >= g_Quantum) {
 			g_needReschedule[id] = true;
 		  // TODO:
 			 /*
 			  * The current process is moved to a lower priority queue,
 			  * since it consumed a full quantum.
 			  */
-		}
 	}
-	else if(sched_mode == EDF)
-	{
-		Print("Timer_vector of EDF Task\n");
-	}
-	
 	End_IRQ(state);
 }
 

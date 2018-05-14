@@ -523,8 +523,10 @@ static int Sys_WaitNoPID(struct Interrupt_State *state) {
 volatile int sched_mode;
 extern volatile int g_Quantum;
 static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
-    if((sched_mode == RR || sched_mode == EDF)
-			&&(g_Quantum>=0 || g_Quantum<=100))
+	int policy = (int)state->ebx;
+	int quantum = (int)state->ecx;
+    if((policy == RR || policy == EDF)
+			&&(quantum >= 0 || quantum<=100))
 	{
 		sched_mode = state->ebx;
 		g_Quantum = state->ecx;
@@ -532,7 +534,7 @@ static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
 	}
 	else
 	{
-		return 1;
+		return -1;
 	}
 }
 
