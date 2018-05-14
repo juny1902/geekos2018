@@ -314,6 +314,7 @@ static int Sys_Spawn_EDF(struct Interrupt_State *state) {
      * from user space, we can try to actually spawn the process.
      */
 	// Priority of RT Thread = -Period
+	Print("[DEBUG] Period : %d\n",state->esi);
     rc = Spawn(program, command, &process, state->edx,(-1)*state->esi);
 	if(rc == 0) {
         KASSERT(process != 0);
@@ -525,11 +526,12 @@ extern volatile int g_Quantum;
 static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
 	int policy = (int)state->ebx;
 	int quantum = (int)state->ecx;
-    if((policy == RR || policy == EDF)
+    Print("[DEBUG] Policy:%d,Quantum:%d\n",policy,quantum);
+	if((policy == RR || policy == EDF)
 			&&(quantum >= 0 || quantum<=100))
 	{
-		sched_mode = state->ebx;
-		g_Quantum = state->ecx;
+		sched_mode = policy;
+		g_Quantum = quantum;
 		return 0;
 	}
 	else
