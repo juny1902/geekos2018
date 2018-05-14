@@ -124,15 +124,9 @@ int Spawn(const char *program, const char *command,
 
     strncpy(userContext->name, program, MAX_PROC_NAME_SZB);
     userContext->name[MAX_PROC_NAME_SZB - 1] = '\0';
-    /* Start the process! */
-    if(!background) // On Real Time
-	{
-		process = Start_User_Thread(userContext, background,period);
-	}
-	else
-	{
-		process = Start_User_Thread(userContext, background,0);
-	}
+
+	/* Start the process! */
+	process = Start_User_Thread(userContext, background,period);
 
 	if(process != 0) {
         /* Return Kernel_Thread pointer */

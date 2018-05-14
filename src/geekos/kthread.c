@@ -507,14 +507,7 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 	while (kthread != 0) {
         if(kthread->affinity == AFFINITY_ANY_CORE ||
            kthread->affinity == cpuID) {
-			if(sched_mode == RR)
-			{
-				if(best == 0 || kthread->priority > best->priority)
-				{
-					best = kthread;
-				}
-			}
-			else if(sched_mode == EDF)
+			if(sched_mode == EDF)
 			{
 	            if(best == 0 || kthread->deadline < best->deadline)
 				{
@@ -522,6 +515,14 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 					best = kthread;
 				}
 			}
+			else
+			{
+				if(best == 0 || kthread->priority > best->priority)
+				{
+					best = kthread;
+				}
+			}
+
 		}
         kthread = Get_Next_In_Thread_Queue(kthread);
     }

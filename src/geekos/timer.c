@@ -117,23 +117,20 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
         }
     
 	}
-	if(sched_mode == RR)
-	{
-		// Vector for RR
-	}
-	else if(sched_mode == EDF)
+	// Update when 
+	// (Current time >= Deadline) or (Current->numticks >= execution time)
+	if(current->priority < 0) // need to compare deadlines
 	{
 		// Vector for EDF
+		if(((int)g_numTicks >= current->deadline)
+				|| current->numTicks >= g_numTicks)
+			current->deadline = prev_deadline - current->priority;
 	}
+	
+	if(current->numTicks >= g_Quantum)
+		g_needReschedule[id] = true;
 
-	if(current->numTicks >= g_Quantum) {
-			g_needReschedule[id] = true;
-		  // TODO:
-			 /*
-			  * The current process is moved to a lower priority queue,
-			  * since it consumed a full quantum.
-			  */
-	}
+	
 	End_IRQ(state);
 }
 
