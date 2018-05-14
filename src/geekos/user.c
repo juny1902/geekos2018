@@ -127,7 +127,6 @@ int Spawn(const char *program, const char *command,
 
 	/* Start the process! */
 	process = Start_User_Thread(userContext, background,period);
-
 	if(process != 0) {
         /* Return Kernel_Thread pointer */
         *pThread = process;
@@ -150,7 +149,7 @@ int Spawn(const char *program, const char *command,
 */
 int Spawn_Foreground(const char *program, const char *command,
                      struct Kernel_Thread **pThread) {
-    return Spawn(program, command, pThread, false, 0);
+    return Spawn(program, command, pThread, false, 1);
 }
 
 extern int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat);

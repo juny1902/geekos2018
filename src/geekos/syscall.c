@@ -265,7 +265,7 @@ static int Sys_Spawn(struct Interrupt_State *state) {
      * Now that we have collected the program name and command string
      * from user space, we can try to actually spawn the process.
      */
-    rc = Spawn(program, command, &process, state->edi,0);
+    rc = Spawn(program, command, &process, state->edi,1);
     if(rc == 0) {
         KASSERT(process != 0);
         rc = process->pid;

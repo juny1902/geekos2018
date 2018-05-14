@@ -461,7 +461,7 @@ static void Reaper(ulong_t arg __attribute__ ((unused))) {
             /* Make the graveyard queue empty. */
             Clear_Thread_Queue(&s_graveyardQueue);
 
-            /* lock again to check grave yard */
+            /* lock agairiorityeck grave yard */
             Spin_Unlock(&s_graveyardQueue.lock);
             Mutex_Unlock(&s_graveyardMutex);
 
@@ -494,6 +494,8 @@ static void Reaper(ulong_t arg __attribute__ ((unused))) {
  * thread queue.  Returns null if queue is empty.
  */
 extern volatile int sched_mode;
+
+extern volatile ulong_t g_numTicks;
 static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
                                                   *queue) {
     int cpuID;
@@ -507,15 +509,17 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 	while (kthread != 0) {
         if(kthread->affinity == AFFINITY_ANY_CORE ||
            kthread->affinity == cpuID) {
-			if(sched_mode == EDF)
+			if(kthread->priority < 0)
 			{
+				if(!(kthread->priority % g_numTicks))
+					continue;
 	            if(best == 0 || kthread->deadline < best->deadline)
 				{
-					// if (kthread->alive) - must finish exiting if not alive.
+
 					best = kthread;
 				}
-			}
-			else if(sched_mode == RR)
+			}	
+			else
 			{
 				if(best == 0 || kthread->priority > best->priority)
 				{
@@ -663,16 +667,15 @@ struct Kernel_Thread *Start_Kernel_Thread(Thread_Start_Func startFunc,
  * Start a user-mode thread (i.e., a process), using given user context.
  * Returns pointer to the new thread if successful, null otherwise.
  */
-extern volatile ulong_t g_numTicks;
 struct Kernel_Thread *Start_User_Thread(struct User_Context *userContext,
                                         bool detached,int period) {
     struct Kernel_Thread *kthread =
-        Create_Thread(PRIORITY_USER, detached);
+        Create_Thread(period, detached);
     if(kthread != 0) {
         /* Set up the thread, and put it on the run queue */
-        Setup_User_Thread(kthread, userContext);
+		Setup_User_Thread(kthread, userContext);
+		kthread->deadline = g_numTicks + period;	
 		// deadline = cur_time + period
-		kthread->deadline = g_numTicks + period;
 		Make_Runnable_Atomic(kthread);
     }
 
