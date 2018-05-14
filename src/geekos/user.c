@@ -91,6 +91,7 @@ void Detach_User_Context(struct Kernel_Thread *kthread) {
  *   should return ENOTFOUND if the reason for failure is that
  *   the executable file doesn't exist.
  */
+extern volatile int g_numTicks;
 int Spawn(const char *program, const char *command,
           struct Kernel_Thread **pThread, bool background,int period) {
     int rc = 0, rc2 = 0, rc3 = 0;
@@ -129,7 +130,7 @@ int Spawn(const char *program, const char *command,
 	process = Start_User_Thread(userContext, background,period);
 	if(process != 0) {
         /* Return Kernel_Thread pointer */
-        *pThread = process;
+		*pThread = process;
     } else
         rc = ENOMEM;
 

@@ -494,7 +494,6 @@ static void Reaper(ulong_t arg __attribute__ ((unused))) {
  * thread queue.  Returns null if queue is empty.
  */
 extern volatile int sched_mode;
-
 extern volatile ulong_t g_numTicks;
 static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
                                                   *queue) {
@@ -507,16 +506,13 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
     /* Pick the nearest deadline thread */
     struct Kernel_Thread *kthread = queue->head, *best = 0;
 	while (kthread != 0) {
-
-		if(kthread->priority < 0)
+		// For EDF Thread, and When the time to start the thread
+		if(kthread->priority < 0 && kthread->priority*(-1) > (int)g_numTicks)
 		{
-			// Earliest Deadline
+			// Eariest Deadline
 			if(best == 0 || kthread->deadline < best->deadline)
 			{
-				if(g_numTicks % kthread->priority)
-				{
-					best = kthread;
-				}
+				best = kthread;
 			}
 				
 		}
@@ -810,8 +806,7 @@ void Schedule(void) {
 
     /* Get next thread to run from the run queue */
     runnable = Get_Next_Runnable();
-
-    // Print("switching to %d, %s (core %d)\n", runnable->pid, runnable->userContext? runnable->userContext->name : runnable->threadName, Get_CPU_ID());
+   // Print("switching to %d, %s (core %d)\n", runnable->pid, runnable->userContext? runnable->userContext->name : runnable->threadName, Get_CPU_ID());
 
     /*
      * Activate the new thread, saving the context of the current thread.
@@ -819,6 +814,8 @@ void Schedule(void) {
      * will "return", and then Schedule() will return to wherever
      * it was called from.
      */
+	
+
     Switch_To_Thread(runnable);
 }
 
