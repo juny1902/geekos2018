@@ -117,10 +117,12 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
         }
     
 	}
+	
 	if(current->priority < 0)
-	{ 
+	{
 		if(((int)g_numTicks >= current->deadline)
-				|| (current->numTicks % 13)) // every deadline or every 13 ticks
+				|| current->numTicks % 13
+				|| current->numTicks >= g_numTicks) // every deadline or every 13 ticks
 		{
 			current->deadline = prev_deadline - current->priority; // To renew
 			g_needReschedule[id] = true; // To Schedule
@@ -133,6 +135,7 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
 			g_needReschedule[id] = true;
 		}
 	}
+	
 	End_IRQ(state);
 }
 

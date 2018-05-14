@@ -27,6 +27,6 @@ int main(int argc __attribute__ ((unused)), char **argv
     Print("3");
     V(holdsched3_sem);
 
-    Close_Semaphore(holdsched3_sem);
+	Close_Semaphore(holdsched3_sem);
     return 0;
 }

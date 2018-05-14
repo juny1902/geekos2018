@@ -507,28 +507,28 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
     /* Pick the nearest deadline thread */
     struct Kernel_Thread *kthread = queue->head, *best = 0;
 	while (kthread != 0) {
-        if(kthread->affinity == AFFINITY_ANY_CORE ||
-           kthread->affinity == cpuID) {
-			if(kthread->priority < 0)
-			{
-	            if(best == 0 || kthread->deadline < best->deadline)
-				{
 
-					best = kthread;
-				}
-			}	
-			else
+		if(kthread->priority < 0)
+		{
+			// Earliest Deadline
+			if(best == 0 || kthread->deadline < best->deadline)
 			{
-				if(best == 0 || kthread->priority > best->priority)
+				if(g_numTicks % kthread->priority)
 				{
 					best = kthread;
 				}
 			}
-
+				
+		}
+		else
+		{
+			if(best == 0 || kthread->priority > best->priority)
+			{
+				best = kthread;
+			}
 		}
         kthread = Get_Next_In_Thread_Queue(kthread);
     }
-
     if(!best) {
         best = CPUs[cpuID].idleThread;
     }
@@ -650,6 +650,7 @@ struct Kernel_Thread *Start_Kernel_Thread(Thread_Start_Func startFunc,
          * Create the initial context for the thread to make
          * it schedulable.
          */
+		
         Setup_Kernel_Thread(kthread, startFunc, arg);
 
         /* Atomically put the thread on the run queue. */
@@ -671,10 +672,19 @@ struct Kernel_Thread *Start_User_Thread(struct User_Context *userContext,
         Create_Thread(period, detached);
     if(kthread != 0) {
         /* Set up the thread, and put it on the run queue */
-		Setup_User_Thread(kthread, userContext);
-		kthread->deadline = g_numTicks + period;	
-		// deadline = cur_time + period
-		Make_Runnable_Atomic(kthread);
+		if(sched_mode == RR)
+		{
+			Setup_User_Thread(kthread, userContext);
+			Make_Runnable_Atomic(kthread);
+		}
+		else
+		{
+			kthread->deadline = g_numTicks + period;
+			// Initial Deadline
+			Setup_User_Thread(kthread, userContext);
+			Make_Runnable_Atomic(kthread);
+		}
+		
     }
 
     return kthread;

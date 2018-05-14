@@ -525,10 +525,10 @@ extern volatile int g_Quantum;
 static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
 	int policy = (int)state->ebx;
 	int quantum = (int)state->ecx;
-    Print("[DEBUG] Policy:%d,Quantum:%d\n",policy,quantum);
 	if((policy == RR || policy == EDF)
-			&&(quantum >= 0 || quantum<=100))
+			&& (quantum >= 0 && quantum<=100))
 	{
+		Print("Policy = %d, Quantum = %d\n",policy,quantum);
 		sched_mode = policy;
 		g_Quantum = quantum;
 		return 0;
