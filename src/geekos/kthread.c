@@ -520,7 +520,6 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 				{
 					// if (kthread->alive) - must finish exiting if not alive.
 					best = kthread;
-					sched_mode == RR;
 				}
 			}
 		}
