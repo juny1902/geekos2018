@@ -117,20 +117,22 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
         }
     
 	}
-	// Update when 
-	// (Current time >= Deadline) or (Current->numticks >= execution time)
-	if(current->priority < 0) // need to compare deadlines
-	{
-		// Vector for EDF
+	if(sched_mode == EDF)
+	{ 
 		if(((int)g_numTicks >= current->deadline)
-				|| current->numTicks >= g_numTicks)
+				|| (current->numTicks % 13))
+		{
 			current->deadline = prev_deadline - current->priority;
+			g_needReschedule[id] = true;
+		}
 	}
-	
-	if(current->numTicks >= g_Quantum)
-		g_needReschedule[id] = true;
-
-	
+	else if(sched_mode == RR)
+	{
+		if(current->numTicks % 13)
+		{
+			g_needReschedule[id] = true;
+		}
+	}
 	End_IRQ(state);
 }
 

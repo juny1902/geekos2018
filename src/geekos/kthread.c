@@ -515,7 +515,7 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 					best = kthread;
 				}
 			}
-			else
+			else if(sched_mode == RR)
 			{
 				if(best == 0 || kthread->priority > best->priority)
 				{

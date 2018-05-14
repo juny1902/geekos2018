@@ -314,7 +314,6 @@ static int Sys_Spawn_EDF(struct Interrupt_State *state) {
      * from user space, we can try to actually spawn the process.
      */
 	// Priority of RT Thread = -Period
-	Print("[DEBUG] Period : %d\n",state->esi);
     rc = Spawn(program, command, &process, state->edx,(-1)*state->esi);
 	if(rc == 0) {
         KASSERT(process != 0);

@@ -43,11 +43,18 @@ int main(int argc, char **argv) {
         Print("usage: %s [rr|mys] <quantum>\n", argv[0]);
         Exit(1);
     }
-
-    id1 = Spawn_Program_EDF("/c/sched1.exe", "/c/sched1.exe", 0,26);
-    id2 = Spawn_Program_EDF("/c/sched2.exe", "/c/sched2.exe", 0,26);
-    id3 = Spawn_Program_EDF("/c/sched3.exe", "/c/sched3.exe", 0,104);
-
+	if(policy == 1)
+	{
+		id1 = Spawn_Program_EDF("/c/sched1.exe", "/c/sched1.exe", 0,26);
+		id2 = Spawn_Program_EDF("/c/sched2.exe", "/c/sched2.exe", 0,26);
+		id3 = Spawn_Program_EDF("/c/sched3.exe", "/c/sched3.exe", 0,104);
+	} else if(policy == 0)
+	{
+		id1 = Spawn_Program("/c/sched1.exe", "/c/sched1.exe", 0);
+		id2 = Spawn_Program("/c/sched2.exe", "/c/sched2.exe", 0);
+		id3 = Spawn_Program("/c/sched3.exe", "/c/sched3.exe", 0);
+	
+	}
     Wait(id1);
     Wait(id2);
     Wait(id3);
