@@ -511,8 +511,6 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
            kthread->affinity == cpuID) {
 			if(kthread->priority < 0)
 			{
-				if(!(kthread->priority % g_numTicks))
-					continue;
 	            if(best == 0 || kthread->deadline < best->deadline)
 				{
 
