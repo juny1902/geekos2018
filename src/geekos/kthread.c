@@ -507,7 +507,7 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 
     /* Pick the nearest deadline thread */
     struct Kernel_Thread *kthread = queue->head, *best = 0;
-	while (kthread != 0) {	
+	while (kthread != 0) {
 		if(kthread->priority < 0)
 		{
 			// Eariest Deadline
@@ -518,6 +518,12 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 		}
 		else
 		{
+			if(sched_mode == EDF)
+			{
+				return kthread;	
+			}
+
+			
 			if(best == 0 || kthread->priority > best->priority)
 			{
 				best = kthread;

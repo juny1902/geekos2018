@@ -22,5 +22,7 @@ Mounted /c filesystem!
 Welcome to GeekOS!
 Spawning init process (/c/shell.exe)
 $ schedtst mys 1
-11212121212312121212112212121212121212122
-$ 
+12121212132121212121221121212121212121212
+$ ; ls s
+Usage: ls <filename>
+$ s l 
