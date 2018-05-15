@@ -21,7 +21,6 @@ Registering paging device: /c/pagefile.bin on ide0 with 10240 sectors
 Mounted /c filesystem!
 Welcome to GeekOS!
 Spawning init process (/c/shell.exe)
-$ schedtst my 1  as  s 1
-Policy = 1, Quantum = 1
-21212121212121212121212121212121212121213
+$ schedtst mys 1
+11212121212312121212112212121212121212122
 $ 

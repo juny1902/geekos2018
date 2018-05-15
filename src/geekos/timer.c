@@ -71,10 +71,9 @@ extern volatile int sched_mode;
 void Timer_Interrupt_Handler(struct Interrupt_State *state) {
     int i;
     int id;
-	int prev_deadline;
 	struct Kernel_Thread *current = CURRENT_THREAD;
 
-	prev_deadline = current->deadline;
+	int prev_deadline = current->deadline;
 
     Begin_IRQ(state);
 
@@ -118,17 +117,15 @@ void Timer_Interrupt_Handler(struct Interrupt_State *state) {
     
 	}
 	
-	if(current->priority < 0)
+	if(current->priority < 0) // For EDF Thread
 	{
-		if(((int)g_numTicks >= current->deadline)
-				|| current->numTicks % 13
-				|| current->numTicks >= g_numTicks) // every deadline or every 13 ticks
+		if(current->numTicks >= 13)    
 		{
 			current->deadline = prev_deadline - current->priority; // To renew
 			g_needReschedule[id] = true; // To Schedule
 		}
 	}
-	else
+	else // For RR Thread
 	{
 		if(current->numTicks >= g_Quantum) // Keeping Original when RR
 		{

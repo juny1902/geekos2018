@@ -23,7 +23,7 @@ int main(int argc __attribute__ ((unused)), char **argv
 
     holdsched3_sem = Open_Semaphore("holdsched3_sem", 0);
 
-    P(holdsched3_sem);
+	P(holdsched3_sem);
     Print("3");
     V(holdsched3_sem);
 

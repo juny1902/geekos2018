@@ -528,7 +528,6 @@ static int Sys_SetSchedulingPolicy(struct Interrupt_State *state) {
 	if((policy == RR || policy == EDF)
 			&& (quantum >= 0 && quantum<=100))
 	{
-		Print("Policy = %d, Quantum = %d\n",policy,quantum);
 		sched_mode = policy;
 		g_Quantum = quantum;
 		return 0;

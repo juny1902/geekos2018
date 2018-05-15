@@ -495,6 +495,8 @@ static void Reaper(ulong_t arg __attribute__ ((unused))) {
  */
 extern volatile int sched_mode;
 extern volatile ulong_t g_numTicks;
+extern volatile int g_Quantum;
+
 static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
                                                   *queue) {
     int cpuID;
@@ -505,23 +507,21 @@ static __inline__ struct Kernel_Thread *Find_Best(struct Thread_Queue
 
     /* Pick the nearest deadline thread */
     struct Kernel_Thread *kthread = queue->head, *best = 0;
-	while (kthread != 0) {
-		// For EDF Thread, and When the time to start the thread
-		if(kthread->priority < 0 && kthread->priority*(-1) > (int)g_numTicks)
+	while (kthread != 0) {	
+		if(kthread->priority < 0)
 		{
 			// Eariest Deadline
 			if(best == 0 || kthread->deadline < best->deadline)
 			{
 				best = kthread;
 			}
-				
 		}
 		else
 		{
 			if(best == 0 || kthread->priority > best->priority)
 			{
 				best = kthread;
-			}
+			}	
 		}
         kthread = Get_Next_In_Thread_Queue(kthread);
     }
@@ -668,19 +668,16 @@ struct Kernel_Thread *Start_User_Thread(struct User_Context *userContext,
         Create_Thread(period, detached);
     if(kthread != 0) {
         /* Set up the thread, and put it on the run queue */
-		if(sched_mode == RR)
+		if(period < 0)
 		{
-			Setup_User_Thread(kthread, userContext);
-			Make_Runnable_Atomic(kthread);
+			kthread->deadline = g_numTicks - period;
 		}
 		else
 		{
 			kthread->deadline = g_numTicks + period;
-			// Initial Deadline
-			Setup_User_Thread(kthread, userContext);
-			Make_Runnable_Atomic(kthread);
 		}
-		
+		Setup_User_Thread(kthread, userContext);
+		Make_Runnable_Atomic(kthread);
     }
 
     return kthread;
