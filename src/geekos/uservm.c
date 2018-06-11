@@ -29,12 +29,12 @@
 #include <geekos/smp.h>
 
 #define DEFAULT_USER_STACK_SIZE 8192
-#define USER_VM_START 0x80000000
-#define KERNEL_SPACE_END 0x7FFFF000
-#define USER_VM_END 0xFFFFF000  //0xffffffff
+#define USER_VM_START 0x80001000
+#define KERNEL_SPACE_END 0x80000000
+#define USER_VM_END 0xF0000FFF  //0xffffffff
 #define USER_VM_SIZE 0x70000000 //0x7FFFF000
 extern Spin_Lock_t kthreadLock;
-extern pde_t *PageDir;
+extern pde_t *g_page_dir;
 int userDebug = 0;
 #define Debug(args...) \
     if (userDebug)     \
@@ -71,7 +71,7 @@ static struct User_Context *Create_User_Context(ulong_t size)
     for (i = 0; i < kernel_PDEntries; i++)
     {
         pde_t entry = {0};
-        UserPageDir[i] = PageDir[i];
+        UserPageDir[i] = g_page_dir[i];
     }
 
     for (i = kernel_PDEntries; i < NUM_PAGE_DIR_ENTRIES; i++)
@@ -83,7 +83,7 @@ static struct User_Context *Create_User_Context(ulong_t size)
     }
 
     //Map APIC and IO APIC
-    UserPageDir[1019] = PageDir[1019];
+    UserPageDir[1019] = g_page_dir[1019];
 
     /* Allocate memory for the user context */
     Disable_Interrupts();

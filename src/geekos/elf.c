@@ -18,7 +18,7 @@
 #include <geekos/errno.h>
 #include <geekos/kassert.h>
 #include <geekos/ktypes.h>
-#include <geekos/screen.h>      /* for debug Print() statements */
+#include <geekos/screen.h> /* for debug Print() statements */
 #include <geekos/pfat.h>
 #include <geekos/malloc.h>
 #include <geekos/string.h>
@@ -42,33 +42,44 @@ int elfDebug = 0;
  * INU 201503120 Park Jun Young - Do not cheat !
  */
 int Parse_ELF_Executable(char *exeFileData, ulong_t exeFileLength,
-                         struct Exe_Format *exeFormat){
-	int pcnt; // Program Header Counter
+						 struct Exe_Format *exeFormat)
+{
+	int pcnt;	 // Program Header Counter
 	int zcnt = 0; // Zero Entry Counter
 
-	elfHeader *ehdr = (elfHeader *)exeFileData; // ELF Header address is the start address of exeFileData.
-	programHeader *phdr = (programHeader *)(exeFileData + ehdr->phoff);
+	elfHeader *ehdr; // ELF Header address is the start address of exeFileData.
+	programHeader *phdr;
 	// Program Header starts away from exeFileData to Program Header Offset.
-	
-	struct Exe_Segment *xseg = exeFormat->segmentList; // Exe_Segment Address
+
+	// Exe_Segment Address
 	// For test - Print Addr, Magic Code, Program Header Segment
 	// Print(" Addr of ELF Header : 0x%08x\n",(int)ehdr);
 	// Print(" ehdr->ident : %s\n",ehdr->ident);
 	// Print(" # of Prgram Header : %d\n",ehdr->phnum);
 
-	if(exeFileData == 0){ // Check NULL File
+	if (exeFileData == 0)
+	{					  // Check NULL File
 		return ENOTFOUND; // To make Get_Error_String(-2) - No file ...
 	}
 
+	ehdr = (elfHeader *)exeFileData;
+	
 	// Check ehdr->ident[0~3] = {0x74,'E','L','F'}
-	if(ehdr->ident[0] != 0x7F && ehdr->ident[1] != 'E' && ehdr->ident[2] != 'L' && ehdr->ident[3] != 'F'){
+	if (ehdr->ident[0] != 0x7F && ehdr->ident[1] != 'E' && ehdr->ident[2] != 'L' && ehdr->ident[3] != 'F')
+	{
 		return -1; // To make Get_Error_String(-1) - Unspecified
 	}
-	for(pcnt=0;pcnt<ehdr->phnum; pcnt++){ // Iterate for each Program Header ...
-		// For test - Print Addresses
-		// Print(" Addr of Program Header %d : 0x%08x\n",pcnt,(int)phdr);
-		// Print(" Addr of Exe segment : 0x%08x\n",(int)xseg);
-		if(ehdr->phentsize == 0){ //Empty Program Header
+
+	exeFormat->numSegments = ehdr->phnum - zcnt; // Determine number of non-empty program header segments
+	exeFormat->entryAddr = ehdr->entry;			 // Copy entry address of ELF Header for exeFormat
+
+	phdr = (programHeader *)(exeFileData + ehdr->phoff);
+	for (pcnt = 0; pcnt < ehdr->phnum; pcnt++)
+	{ // Iterate for each Program Header ...
+		struct Exe_Segment *xseg = &exeFormat->segmentList[pcnt];
+
+		if (ehdr->phentsize == 0)
+		{			//Empty Program Header
 			xseg++; // Next Exe Segment
 			phdr++; // Next Program Header Segment
 			zcnt++; // Count empty Program Headers
@@ -86,7 +97,6 @@ int Parse_ELF_Executable(char *exeFileData, ulong_t exeFileLength,
 	}
 	// For test - Print the number of empty program headers
 	// Print(" # of Empty Program Header : %d\n",zcnt);
-	exeFormat->numSegments=ehdr->phnum-zcnt; // Determine number of non-empty program header segments
-	exeFormat->entryAddr=ehdr->entry; // Copy entry address of ELF Header for exeFormat
+
 	return 0;
 }

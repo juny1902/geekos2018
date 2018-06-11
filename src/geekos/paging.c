@@ -38,7 +38,7 @@
 /* ----------------------------------------------------------------------
  * Public data
  * ---------------------------------------------------------------------- */
-pde_t *PageDir;
+pde_t *g_page_dir;
 /* ----------------------------------------------------------------------
  * Private functions/data
  * ---------------------------------------------------------------------- */
@@ -57,7 +57,7 @@ int debugFaults = 0;
    modify the kernel page directory */
 const pde_t *Kernel_Page_Dir(void)
 {
-    return PageDir;
+    return g_page_dir;
 }
 
 /*
@@ -140,7 +140,7 @@ error:
     Exit(-1);
 }
 
-void Identity_Map_Page(pde_t *currentPageDir, unsigned int address,
+void Identity_Map_Page(pde_t *currentg_page_dir, unsigned int address,
                        int flags)
 {
 }
@@ -170,8 +170,8 @@ void Init_VM(struct Boot_Info *bootInfo)
     Print("Num pages = %lu\n", numPages);
     ulong_t numPdEnt = numPages / NUM_PAGE_TABLE_ENTRIES;
 
-    PageDir = Alloc_Page();
-    memset(PageDir, '\0', 4096);
+    g_page_dir = Alloc_Page();
+    memset(g_page_dir, '\0', 4096);
 
     if (numPages % NUM_PAGE_TABLE_ENTRIES != 0)
     {
@@ -195,14 +195,14 @@ void Init_VM(struct Boot_Info *bootInfo)
         entry.flags = VM_WRITE;
 
         /* Install the PDE in index i of the page directory */
-        PageDir[i] = entry;
+        g_page_dir[i] = entry;
     }
 
     for (i = numPdEnt; i < NUM_PAGE_DIR_ENTRIES; i++)
     {
         /* present bit is set to 0 */
         pde_t entry = {0};
-        PageDir[i] = entry;
+        g_page_dir[i] = entry;
     }
 
     //Map APIC and IO APIC
@@ -251,13 +251,13 @@ void Init_VM(struct Boot_Info *bootInfo)
         /* Install the PDE in index i of the page directory */
         pageTable[j] = entry;
     }
-    PageDir[1019] = entry;
+    g_page_dir[1019] = entry;
     //Map APIC and IO APIC
 
     /*Install  page table entries*/
     for (i = 0; i < numPdEnt; i++)
     {
-        pte_t *PageTable = (pte_t *)(PageDir[i].pageTableBaseAddr << 12);
+        pte_t *PageTable = (pte_t *)(g_page_dir[i].pageTableBaseAddr << 12);
 
         for (j = 0; j < NUM_PAGE_TABLE_ENTRIES; j++)
         {
@@ -293,7 +293,7 @@ void Init_VM(struct Boot_Info *bootInfo)
     checkPaging();
     Print("\n");
     /*Turn on paging*/
-    Enable_Paging(PageDir);
+    Enable_Paging(g_page_dir);
     checkPaging();
 
     /* Install page fault handler */
