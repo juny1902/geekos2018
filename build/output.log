@@ -1,13 +1,19 @@
-BSS = 4b5c0
+BSS = 4dd24
 start kern info = 90000
 Creating kernel heap: start=102000, size=1048576
-527232KB memory detected, 130363 pages in freelist, 1048576 bytes in kernel heap
+527232KB memory detected, 130361 pages in freelist, 1048576 bytes in kernel heap
 Initializing IDT...
 Init_SMP
 Initializing SMP...
 found CPU#0 with APIC id #0
 found IO APIC ID=0 at fec00000
 /Init_SMP
+Num pages = 131808
+Initializing Virtual Memory... 
+
+Paging on ? : 0
+
+Paging on ? : 1
 apic counted down to ffffffc3
 cpu freq = 8281600
 Initializing timer...
@@ -21,8 +27,4 @@ Registering paging device: /c/pagefile.bin on ide0 with 10240 sectors
 Mounted /c filesystem!
 Welcome to GeekOS!
 Spawning init process (/c/shell.exe)
-$ schedtst mys 1
-12121212132121212121221121212121212121212
-$ ; ls s
-Usage: ls <filename>
-$ s l 
+$ 

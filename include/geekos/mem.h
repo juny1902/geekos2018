@@ -122,7 +122,7 @@ static __inline__ struct Page *Get_Page(const ulong_t addr) {
     extern struct Page *g_pageList;
     extern unsigned int g_numPages;
     unsigned int idx;
-    KASSERT0((((unsigned long)addr) & 0x3ff) == 0,
+    KASSERT0((((unsigned long)addr) & 0xfff) == 0,
              "Get_Page given an address not on a page boundary, perhaps not a page address.");
     idx = Page_Index(addr);
     KASSERT0(idx < g_numPages,

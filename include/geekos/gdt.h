@@ -17,7 +17,6 @@
 
 #ifndef GEEKOS_GDT_H
 #define GEEKOS_GDT_H
-
 struct Segment_Descriptor;
 
 void Init_GDT(int CPUid);

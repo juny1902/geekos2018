@@ -43,13 +43,14 @@ extern Spin_Lock_t kthreadLock;
  * This makes the thread a user process.
  */
 void Attach_User_Context(struct Kernel_Thread *kthread,
-                         struct User_Context *context) {
+                         struct User_Context *context)
+{
     KASSERT(context != 0);
     kthread->userContext = context;
 
     KASSERT(context->refCount >= 0);
 
-    int iflag = Begin_Int_Atomic();     /* ns14; deadlock if kthreadlock held when preempted */
+    int iflag = Begin_Int_Atomic(); /* ns14; deadlock if kthreadlock held when preempted */
     Spin_Lock(&kthreadLock);
     ++context->refCount;
     Spin_Unlock(&kthreadLock);
@@ -62,20 +63,22 @@ void Attach_User_Context(struct Kernel_Thread *kthread,
  * being destroyed.
  *	Called with kthreadLock held
  */
-void Detach_User_Context(struct Kernel_Thread *kthread) {
+void Detach_User_Context(struct Kernel_Thread *kthread)
+{
     struct User_Context *old = kthread->userContext;
 
     kthread->userContext = NULL;
 
-    if(old != 0) {
+    if (old != 0)
+    {
         --old->refCount;
-        if(old->refCount == 0) {
+        if (old->refCount == 0)
+        {
             Destroy_User_Context(old);
         }
         KASSERT(old->refCount >= 0);
     }
 }
-
 
 /*
  * Spawn a user process.
@@ -93,7 +96,8 @@ void Detach_User_Context(struct Kernel_Thread *kthread) {
  */
 extern volatile int g_numTicks;
 int Spawn(const char *program, const char *command,
-          struct Kernel_Thread **pThread, bool background,int period) {
+          struct Kernel_Thread **pThread, bool background, int period)
+{
     int rc = 0, rc2 = 0, rc3 = 0;
     char *exeFileData = 0;
     ulong_t exeFileLength;
@@ -107,11 +111,12 @@ int Spawn(const char *program, const char *command,
 
     rc = Read_Fully(program, (void **)&exeFileData, &exeFileLength);
     rc2 = Parse_ELF_Executable(exeFileData, exeFileLength, &exeFormat);
-    rc3 = Load_User_Program(exeFileData, exeFileLength, &exeFormat, 
-			command, &userContext);
-   if(rc|rc2|rc3) {
-        rc |= rc2 | rc3;        
-     /* since all are zero, this sets rc to whichever one is nonzero.
+    rc3 = Load_User_Program(exeFileData, exeFileLength, &exeFormat,
+                            command, &userContext);
+    if (rc | rc2 | rc3)
+    {
+        rc |= rc2 | rc3;
+        /* since all are zero, this sets rc to whichever one is nonzero.
         breakpoint here if you need to know which one failed. */
         goto fail;
     }
@@ -126,20 +131,22 @@ int Spawn(const char *program, const char *command,
     strncpy(userContext->name, program, MAX_PROC_NAME_SZB);
     userContext->name[MAX_PROC_NAME_SZB - 1] = '\0';
 
-	/* Start the process! */
-	process = Start_User_Thread(userContext, background,period);
-	if(process != 0) {
+    /* Start the process! */
+    process = Start_User_Thread(userContext, background, period);
+    if (process != 0)
+    {
         /* Return Kernel_Thread pointer */
-		*pThread = process;
-    } else
+        *pThread = process;
+    }
+    else
         rc = ENOMEM;
 
     return rc;
 
-  fail:
-    if(exeFileData != 0)
+fail:
+    if (exeFileData != 0)
         Free(exeFileData);
-    if(userContext != 0)
+    if (userContext != 0)
         Destroy_User_Context(userContext);
 
     return rc;
@@ -149,13 +156,14 @@ int Spawn(const char *program, const char *command,
  * Called from main -- don't alter main for this.
 */
 int Spawn_Foreground(const char *program, const char *command,
-                     struct Kernel_Thread **pThread) {
+                     struct Kernel_Thread **pThread)
+{
     return Spawn(program, command, pThread, false, 1);
 }
 
-extern int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat);
+// extern int Spawn_Program(char *exeFileData, struct Exe_Format *exeFormat);
 extern void Hardware_Shutdown();
-
+/*
 void Spawner() {
   const char *program = "/c/a.exe";
   char *exeFileData = 0;
@@ -183,7 +191,7 @@ void Spawner() {
 fail:
   Hardware_Shutdown();
 }
-
+*/
 /*
  * If the given thread has a User_Context,
  * switch to its memory space.
@@ -195,7 +203,8 @@ fail:
  */
 void Switch_To_User_Context(struct Kernel_Thread *kthread,
                             struct Interrupt_State *state
-                            __attribute__ ((unused))) {
+                            __attribute__((unused)))
+{
     int cpuID;
     extern int userDebug;
     struct User_Context *userContext = kthread->userContext;
@@ -209,7 +218,8 @@ void Switch_To_User_Context(struct Kernel_Thread *kthread,
 
     KASSERT(!Interrupts_Enabled());
 
-    if(CPUs[cpuID].s_currentUserContext && userContext == 0) {
+    if (CPUs[cpuID].s_currentUserContext && userContext == 0)
+    {
         /* Kernel mode thread: muse switch kernel address space. 
            another core could delete a user context while this thread is 
            using it otherwise. */
@@ -219,9 +229,10 @@ void Switch_To_User_Context(struct Kernel_Thread *kthread,
     }
 
     /* Switch only if the user context is indeed different */
-    if(userContext != CPUs[cpuID].s_currentUserContext) {
+    if (userContext != CPUs[cpuID].s_currentUserContext)
+    {
 
-        if(userDebug)
+        if (userDebug)
             Print("A[%p]\n", kthread);
 
         /* Switch to address space of user context */
@@ -240,8 +251,8 @@ void Switch_To_User_Context(struct Kernel_Thread *kthread,
      */
     ulong_t esp0;
 
-    esp0 = ((ulong_t) kthread->stackPage) + PAGE_SIZE;
-    if(userDebug)
+    esp0 = ((ulong_t)kthread->stackPage) + PAGE_SIZE;
+    if (userDebug)
         Print("S[%lx]\n", esp0);
 
     /* Change to the kernel stack of the new process. */

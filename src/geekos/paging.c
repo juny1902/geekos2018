@@ -38,7 +38,7 @@
 /* ----------------------------------------------------------------------
  * Public data
  * ---------------------------------------------------------------------- */
-
+pde_t *PageDir;
 /* ----------------------------------------------------------------------
  * Private functions/data
  * ---------------------------------------------------------------------- */
@@ -49,40 +49,41 @@
  * flag to indicate if debugging paging code
  */
 int debugFaults = 0;
-#define Debug(args...) if (debugFaults) Print(args)
-
+#define Debug(args...) \
+    if (debugFaults)   \
+    Print(args)
 
 /* const because we do not expect any caller to need to
    modify the kernel page directory */
-const pde_t *Kernel_Page_Dir(void) {
-    TODO_P(PROJECT_VIRTUAL_MEMORY_A, "return kernel page directory");
-    return NULL;
+const pde_t *Kernel_Page_Dir(void)
+{
+    return PageDir;
 }
-
-
 
 /*
  * Print diagnostic information for a page fault.
  */
-static void Print_Fault_Info(uint_t address, faultcode_t faultCode) {
+static void Print_Fault_Info(uint_t address, faultcode_t faultCode)
+{
     extern uint_t g_freePageCount;
-    struct Kernel_Thread *current = get_current_thread(0);      /* informational, could be incorrect with low probability */
+    struct Kernel_Thread *current = get_current_thread(0); /* informational, could be incorrect with low probability */
 
-    if(current) {
+    if (current)
+    {
         Print("Pid %d: (%p/%s)", current->pid, current,
               current->threadName);
     }
     Print("\n Page Fault received, at address %p (%d pages free)\n",
           (void *)address, g_freePageCount);
-    if(faultCode.protectionViolation)
+    if (faultCode.protectionViolation)
         Print("   Protection Violation, ");
     else
         Print("   Non-present page, ");
-    if(faultCode.writeFault)
+    if (faultCode.writeFault)
         Print("Write Fault, ");
     else
         Print("Read Fault, ");
-    if(faultCode.userModeFault)
+    if (faultCode.userModeFault)
         Print("in User Mode\n");
     else
         Print("in Supervisor Mode\n");
@@ -98,7 +99,8 @@ union type_pun_workaround {
  * You should call the Install_Interrupt_Handler() function to
  * register this function as the handler for interrupt 14.
  */
-/*static*/ void Page_Fault_Handler(struct Interrupt_State *state) {
+/*static*/ void Page_Fault_Handler(struct Interrupt_State *state)
+{
     ulong_t address;
     union type_pun_workaround tpw;
     faultcode_t faultCode;
@@ -109,8 +111,8 @@ union type_pun_workaround {
     address = Get_Page_Fault_Address();
     Debug("Page fault @%lx\n", address);
 
-
-    if(address < 0xfec01000 && address > 0xf0000000) {
+    if (address < 0xfec01000 && address > 0xf0000000)
+    {
         Print("page fault address in APIC/IOAPIC range\n");
         goto error;
     }
@@ -125,8 +127,7 @@ union type_pun_workaround {
 
     TODO_P(PROJECT_MMAP, "handle mmap'd page faults");
 
-
-  error:
+error:
     Print("Unexpected Page Fault received\n");
     Print_Fault_Info(address, faultCode);
     Dump_Interrupt_State(state);
@@ -139,20 +140,22 @@ union type_pun_workaround {
     Exit(-1);
 }
 
-void Identity_Map_Page(pde_t * currentPageDir, unsigned int address,
-                       int flags) {
+void Identity_Map_Page(pde_t *currentPageDir, unsigned int address,
+                       int flags)
+{
 }
 
 /* ----------------------------------------------------------------------
  * Public functions
  * ---------------------------------------------------------------------- */
 
-
 /*
  * Initialize virtual memory by building page tables
  * for the kernel and physical memory.
  */
-void Init_VM(struct Boot_Info *bootInfo) {
+extern void checkPaging();
+void Init_VM(struct Boot_Info *bootInfo)
+{
     /*
      * Hints:
      * - Build kernel page directory and page tables
@@ -162,11 +165,143 @@ void Init_VM(struct Boot_Info *bootInfo) {
      * - Do not map a page at address 0; this will help trap
      *   null pointer references
      */
-    TODO_P(PROJECT_VIRTUAL_MEMORY_A,
-           "Build initial kernel page directory and page tables");
+    ulong_t numPages = bootInfo->memSizeKB >> 2;
+    //ulong_t numPages = 1024*1024;
+    Print("Num pages = %lu\n", numPages);
+    ulong_t numPdEnt = numPages / NUM_PAGE_TABLE_ENTRIES;
+
+    PageDir = Alloc_Page();
+    memset(PageDir, '\0', 4096);
+
+    if (numPages % NUM_PAGE_TABLE_ENTRIES != 0)
+    {
+        numPdEnt++;
+    }
+
+    Print("Initializing Virtual Memory... \n");
+    /*Install  page directory entries*/
+    uint_t i, j;
+    for (i = 0; i < numPdEnt; i++)
+    {
+        pde_t entry = {0};
+        pte_t *pageTable;
+        /* Allocate a page table and clear it */
+        pageTable = Alloc_Page();
+        memset(pageTable, '\0', 4096);
+
+        /* Create a page directory entry pointing to this page table */
+        entry.present = 1;
+        entry.pageTableBaseAddr = ((ulong_t)pageTable) >> 12;
+        entry.flags = VM_WRITE;
+
+        /* Install the PDE in index i of the page directory */
+        PageDir[i] = entry;
+    }
+
+    for (i = numPdEnt; i < NUM_PAGE_DIR_ENTRIES; i++)
+    {
+        /* present bit is set to 0 */
+        pde_t entry = {0};
+        PageDir[i] = entry;
+    }
+
+    //Map APIC and IO APIC
+    pde_t entry = {0};
+    pte_t *pageTable;
+    /* Allocate a page table and clear it */
+    pageTable = Alloc_Page();
+    memset(pageTable, '\0', 4096);
+
+    /* Create a page directory entry pointing to this page table */
+    entry.present = 1;
+    entry.pageTableBaseAddr = ((ulong_t)pageTable) >> 12;
+    entry.flags = VM_WRITE;
+
+    /* Install the PDE in index i of the page directory */
+
+    for (j = 0; j < 256; j++)
+    {
+        /*Case when number of pages in memory is not a multiple of NUM_PAGE_TABLE_ENTRIES*/
+
+        pte_t entry = {0};
+        ulong_t addr;
+        /* Create a page table entry pointing to  physical memory frame*/
+        entry.present = 1;
+        entry.flags = VM_WRITE;
+        addr = 1019 << 10;
+        addr = addr | ((ulong_t)j);
+        entry.pageBaseAddr = addr;
+        //Print("Address is %x \n", entry.pageBaseAddr);
+        /* Install the PDE in index i of the page directory */
+        pageTable[j] = entry;
+    }
+    for (j = 512; j < 768; j++)
+    {
+        /*Case when number of pages in memory is not a multiple of NUM_PAGE_TABLE_ENTRIES*/
+
+        pte_t entry = {0};
+        ulong_t addr;
+        /* Create a page table entry pointing to  physical memory frame*/
+        entry.present = 1;
+        entry.flags = VM_WRITE;
+        addr = 1019 << 10;
+        addr = addr | ((ulong_t)j);
+        entry.pageBaseAddr = addr;
+        //Print("Address is %x \n", entry.pageBaseAddr);
+        /* Install the PDE in index i of the page directory */
+        pageTable[j] = entry;
+    }
+    PageDir[1019] = entry;
+    //Map APIC and IO APIC
+
+    /*Install  page table entries*/
+    for (i = 0; i < numPdEnt; i++)
+    {
+        pte_t *PageTable = (pte_t *)(PageDir[i].pageTableBaseAddr << 12);
+
+        for (j = 0; j < NUM_PAGE_TABLE_ENTRIES; j++)
+        {
+            /*Case when number of pages in memory is not a multiple of NUM_PAGE_TABLE_ENTRIES*/
+            if (numPages % NUM_PAGE_TABLE_ENTRIES != 0 && i == numPdEnt - 1 && j == (numPages % NUM_PAGE_TABLE_ENTRIES))
+            {
+                break;
+            }
+            else if (i == 0 && j == 0)
+            {
+                pte_t entry = {0};
+                PageTable[j] = entry;
+                continue;
+            }
+            else
+            {
+
+                pte_t entry = {0};
+                ulong_t addr;
+                /* Create a page table entry pointing to  physical memory frame*/
+                entry.present = 1;
+                entry.flags = VM_WRITE;
+                addr = ((ulong_t)i) << 10;
+                addr = addr | ((ulong_t)j);
+                entry.pageBaseAddr = addr;
+                //Print("Address is %x \n", entry.pageBaseAddr);
+                /* Install the PDE in index i of the page directory */
+                PageTable[j] = entry;
+            }
+        }
+    }
+    Print("\n");
+    checkPaging();
+    Print("\n");
+    /*Turn on paging*/
+    Enable_Paging(PageDir);
+    checkPaging();
+
+    /* Install page fault handler */
+    Install_Interrupt_Handler(14, Page_Fault_Handler);
 }
 
-void Init_Secondary_VM() {
+void Init_Secondary_VM()
+{
     TODO_P(PROJECT_VIRTUAL_MEMORY_A, "enable paging on secondary cores");
 }
 
@@ -175,7 +310,8 @@ void Init_Secondary_VM() {
  * All filesystems should be mounted before this function
  * is called, to ensure that the paging file is available.
  */
-void Init_Paging(void) {
+void Init_Paging(void)
+{
     TODO_P(PROJECT_VIRTUAL_MEMORY_B,
            "Initialize paging file data structures");
 }
@@ -186,7 +322,8 @@ void Init_Paging(void) {
  * @return index of free page sized chunk of disk space in
  *   the paging file, or -1 if the paging file is full
  */
-int Find_Space_On_Paging_File(void) {
+int Find_Space_On_Paging_File(void)
+{
     KASSERT(!Interrupts_Enabled());
     TODO_P(PROJECT_VIRTUAL_MEMORY_B, "Find free page in paging file");
     return EUNSUPPORTED;
@@ -197,7 +334,8 @@ int Find_Space_On_Paging_File(void) {
  * Interrupts must be disabled.
  * @param pagefileIndex index of the chunk of disk space
  */
-void Free_Space_On_Paging_File(int pagefileIndex) {
+void Free_Space_On_Paging_File(int pagefileIndex)
+{
     /* KASSERT(!Interrupts_Enabled()); seems unnecessary - ns */
     TODO_P(PROJECT_VIRTUAL_MEMORY_B, "Free page in paging file");
 }
@@ -210,10 +348,11 @@ void Free_Space_On_Paging_File(int pagefileIndex) {
  * @param pagefileIndex the index of the page sized chunk of space
  *   in the paging file
  */
-void Write_To_Paging_File(void *paddr, ulong_t vaddr, int pagefileIndex) {
-    struct Page *page = Get_Page((ulong_t) paddr);
-    KASSERT(!(page->flags & PAGE_PAGEABLE));    /* Page must be pageable! */
-    KASSERT(page->flags & PAGE_LOCKED); /* Page must be locked! */
+void Write_To_Paging_File(void *paddr, ulong_t vaddr, int pagefileIndex)
+{
+    struct Page *page = Get_Page((ulong_t)paddr);
+    KASSERT(!(page->flags & PAGE_PAGEABLE)); /* Page must be pageable! */
+    KASSERT(page->flags & PAGE_LOCKED);      /* Page must be locked! */
     TODO_P(PROJECT_VIRTUAL_MEMORY_B, "Write page data to paging file");
 }
 
@@ -226,30 +365,34 @@ void Write_To_Paging_File(void *paddr, ulong_t vaddr, int pagefileIndex) {
  * @param pagefileIndex the index of the page sized chunk of space
  *   in the paging file
  */
-void Read_From_Paging_File(void *paddr, ulong_t vaddr, int pagefileIndex) {
-    struct Page *page = Get_Page((ulong_t) paddr);
-    KASSERT(!(page->flags & PAGE_PAGEABLE));    /* Page must be locked! */
+void Read_From_Paging_File(void *paddr, ulong_t vaddr, int pagefileIndex)
+{
+    struct Page *page = Get_Page((ulong_t)paddr);
+    KASSERT(!(page->flags & PAGE_PAGEABLE)); /* Page must be locked! */
     TODO_P(PROJECT_VIRTUAL_MEMORY_B, "Read page data from paging file");
 }
 
-
 void *Mmap_Impl(void *ptr, unsigned int length, int prot, int flags,
-                int fd) {
+                int fd)
+{
     TODO_P(PROJECT_MMAP, "Mmap setup mapping");
     return NULL;
 }
 
-bool Is_Mmaped_Page(struct User_Context * context, ulong_t vaddr) {
+bool Is_Mmaped_Page(struct User_Context *context, ulong_t vaddr)
+{
     TODO_P(PROJECT_MMAP,
            "is this passed vaddr an mmap'd page in the passed user context");
     return false;
 }
 
-void Write_Out_Mmaped_Page(struct User_Context *context, ulong_t vaddr) {
+void Write_Out_Mmaped_Page(struct User_Context *context, ulong_t vaddr)
+{
     TODO_P(PROJECT_MMAP, "Mmap write back dirty mmap'd page");
 }
 
-int Munmap_Impl(ulong_t ptr) {
+int Munmap_Impl(ulong_t ptr)
+{
     TODO_P(PROJECT_MMAP, "unmapp the pages");
     return 0;
 }
